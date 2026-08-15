@@ -1,0 +1,16 @@
+third_party/
+__pycache__/
+*.pyc
+*.log
+.pytest_cache/
+*.docx
+.env
+.env.*
+
+# Data, features, checkpoints, and environments belong on scratch.
+/data/
+/features/
+/checkpoints/
+/envs/
+/runs/
+/logs/

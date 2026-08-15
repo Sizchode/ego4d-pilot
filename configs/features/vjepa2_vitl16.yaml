@@ -1,0 +1,49 @@
+force_yes: true
+io:
+  filter_completed: true
+  video_dir_path: ${oc.env:EGO4D_PILOT_SCRATCH}/data/raw-v1/v1/full_scale
+  ego4d_download_dir: ${oc.env:EGO4D_PILOT_SCRATCH}/data/raw-v1
+  dataset_version: ego4d
+  uid_list: null
+  video_limit: -1
+  out_path: ${oc.env:EGO4D_PILOT_SCRATCH}/features/vjepa2_vitl16
+  debug_path: null
+  debug_mode: false
+  exclude_no_audio: false
+inference_config:
+  device: cuda
+  batch_size: 16
+  num_workers: 14
+  prefetch_factor: 2
+  fps: 30
+  frame_window: 32
+  stride: 16
+  include_audio: false
+  include_video: true
+  norm_config:
+    normalize_audio: false
+    resample_audio_rate: 16000
+    resampling_method: sinc_interpolation
+schedule_config:
+  run_locally: true
+  log_folder: ${oc.env:EGO4D_PILOT_SCRATCH}/logs
+  timeout_min: 720
+  constraint: null
+  slurm_partition: gpu
+  slurm_array_parallelism: 2
+  gpus_per_node: 1
+  cpus_per_task: 8
+  overhead: 1.0
+  time_per_forward_pass: 0.5
+  schedule_time_per_node: 10
+model_config:
+  repository_path: ${oc.env:EGO4D_PILOT_ROOT}/third_party/vjepa2
+  checkpoint_path: ${oc.env:EGO4D_PILOT_SCRATCH}/checkpoints/vjepa2/vitl.pt
+  checkpoint_key: target_encoder
+  side_size: 292
+  crop_size: 256
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  use_bfloat16: true
+model_module_str: feature_models.vjepa2
+check_fv_count: false
