@@ -14,9 +14,6 @@ The code intentionally contains no temporal adapter, projector, distillation
 loss, new dataset split, or custom benchmark metric. An intervention is chosen
 only after the diagnostic results are available.
 
-The previous Ego4D OSCC/PNR pilot is preserved by the Git tag
-`ego4d-pilot-v1`.
-
 The staged hypotheses, diagnostic interpretations, and stopping rule are in
 [`docs/experiment_plan.md`](docs/experiment_plan.md).
 
