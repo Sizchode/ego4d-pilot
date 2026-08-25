@@ -1,16 +1,28 @@
-third_party/
+.venv/
 __pycache__/
-*.pyc
-*.log
+*.py[cod]
 .pytest_cache/
-*.docx
+.ruff_cache/
 .env
 .env.*
 
-# Data, features, checkpoints, and environments belong on scratch.
-/data/
-/features/
-/checkpoints/
-/envs/
-/runs/
-/logs/
+# Published upstream repositories are fetched at revisions recorded in the
+# protocol manifest; they are not vendored into this repository.
+third_party/*
+!third_party/REVISIONS.md
+
+# Data, model weights, features, probe checkpoints, and run products live on
+# scratch and must never be committed.
+data/
+features/
+artifacts/
+outputs/
+checkpoints/
+envs/
+runs/
+logs/
+*.pt
+*.pth
+*.safetensors
+*.docx
+*.log
