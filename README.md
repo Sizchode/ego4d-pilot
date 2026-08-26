@@ -57,6 +57,15 @@ The experiment-local settings and source revisions are in
 It uses the released SSv2 train split and AoT-PsyPhyBENCH evaluation set; it
 does not create a new split or metric.
 
+SSv2 videos are the original Qualcomm archive, resolved through the pinned
+`morpheushoc/something-something-v2` Hugging Face mirror. The official train
+annotations are resolved independently from the pinned
+`HuggingFaceM4/something_something_v2` revision. AoT-PsyPhyBENCH metadata and
+its required source filenames come from the pinned official
+`Lis-f/which-way-does-time-flow` release. Its videos are not redistributed by
+the benchmark: they must be obtained from the official Multi-Moments in Time
+access form and renamed exactly as specified by the benchmark authors.
+
 Build the two manifests after obtaining the official videos and annotations:
 
 ```bash
