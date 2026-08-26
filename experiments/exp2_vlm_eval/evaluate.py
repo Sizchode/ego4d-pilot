@@ -34,6 +34,7 @@ def main() -> None:
         [
             f"pretrained={model_path}",
             f"max_num_frames={model['max_num_frames']}",
+            f"fps={model['fps']}",
             f"min_pixels={model['min_pixels']}",
             f"max_pixels={model['max_pixels']}",
             f"attn_implementation={model['attention']}",

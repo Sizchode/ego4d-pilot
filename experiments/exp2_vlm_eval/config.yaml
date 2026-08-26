@@ -2,6 +2,7 @@ model:
   repo_id: Qwen/Qwen3-VL-8B-Instruct
   revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
   max_num_frames: 32
+  fps: 2.0
   min_pixels: 50176
   max_pixels: 1605632
   attention: sdpa

@@ -98,6 +98,8 @@ This calls the pinned official lmms-eval implementation for
 `vitatecs_direction`, `tvbench`, and `mvbench` using the dataset splits and
 metrics recorded in
 [`experiments/exp2_vlm_eval/config.yaml`](experiments/exp2_vlm_eval/config.yaml).
+Qwen's released video utility samples at its default 2 FPS and caps each clip
+at 32 frames, which preserves valid handling for clips shorter than 32 frames.
 
 ```bash
 sbatch launchers/exp2_vlm_eval.slurm \
