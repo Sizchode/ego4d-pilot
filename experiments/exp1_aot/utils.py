@@ -1,8 +1,24 @@
-"""Published AoT accuracy with official class-bias diagnostics."""
+"""Configuration and published AoT metrics for Experiment 1."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+
+def load_config(path: str | Path) -> tuple[Path, dict[str, Any]]:
+    """Load an experiment-local YAML configuration."""
+
+    resolved = Path(path).expanduser().resolve()
+    with resolved.open("r", encoding="utf-8") as handle:
+        config = yaml.safe_load(handle)
+    required = {"seed", "models", "datasets", "video", "probe"}
+    if not isinstance(config, dict) or not required.issubset(config):
+        raise ValueError(f"invalid Experiment 1 config: {resolved}")
+    return resolved, config
 
 
 def _class_f1(targets: Sequence[int], predictions: Sequence[int], positive: int) -> float:

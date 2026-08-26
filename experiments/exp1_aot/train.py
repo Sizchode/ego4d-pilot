@@ -1,7 +1,8 @@
-"""Distributed online frozen-backbone probe training and exact evaluation."""
+"""Train frozen-backbone Arrow-of-Time probes for Experiment 1."""
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import random
@@ -15,11 +16,10 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, DistributedSampler
 
-from .data import ManifestVideoDataset, video_collate
-from .metrics import arrow_of_time_metrics
-from .probe import MultiRepresentationProbe
-from .protocol import Protocol
-from .providers import build_provider
+from dataset import ManifestVideoDataset, video_collate
+from models import build_model
+from probe import MultiRepresentationProbe
+from utils import arrow_of_time_metrics, load_config
 
 
 def _distributed() -> tuple[int, int, int]:
@@ -84,7 +84,7 @@ def evaluate(
     local: list[dict[str, Any]] = []
     with torch.inference_mode():
         for batch in loader:
-            representations = provider.extract(batch["videos"])
+            representations = provider.extract(batch["videos"], training=False)
             with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                 logits = probe(representations)
             for name, values in logits.items():
@@ -117,13 +117,12 @@ def evaluate(
 
 
 def run_probe_training(
-    protocol: Protocol,
-    provider_name: str,
+    config_path: str | Path,
+    model_name: str,
     train_manifest: str | Path,
     eval_manifest: str | Path,
     model_root: str | Path,
     output_dir: str | Path,
-    tat_root: str | Path,
     workers: int,
 ) -> None:
     rank, world_size, local_rank = _distributed()
@@ -131,13 +130,12 @@ def run_probe_training(
         raise RuntimeError("probe training requires CUDA")
     torch.cuda.set_device(local_rank)
     device = torch.device("cuda", local_rank)
-    _seed_everything(protocol.seed, rank)
+    resolved_config, config = load_config(config_path)
+    _seed_everything(int(config["seed"]), rank)
 
-    data = protocol.data
-    model_config = protocol.model(provider_name)
-    model_path = Path(model_root).expanduser().resolve() / model_config["local_directory"]
-    provider = build_provider(provider_name, model_path, model_config, device)
-    architecture = data["probe"]["architecture"]
+    model_config = config["models"][model_name]
+    provider = build_model(model_name, model_root, model_config, device)
+    architecture = config["probe"]["architecture"]
     probes = MultiRepresentationProbe(
         provider.representation_dimensions,
         heads=int(architecture["heads"]),
@@ -147,10 +145,21 @@ def run_probe_training(
     if world_size > 1:
         probes = DistributedDataParallel(probes, device_ids=[local_rank])
 
-    frames = int(data["video"]["frames"])
-    train_dataset = ManifestVideoDataset(train_manifest, tat_root, frames, sampling="rand")
-    eval_dataset = ManifestVideoDataset(eval_manifest, tat_root, frames, sampling="middle")
-    optimization = data["probe"]["optimization"]
+    frames = int(model_config.get("frames", config["video"]["frames"]))
+    apply_tat_spatial = model_config.get("preprocessing") != "provider_official"
+    train_dataset = ManifestVideoDataset(
+        train_manifest,
+        frames,
+        sampling="rand",
+        apply_tat_spatial_transform=apply_tat_spatial,
+    )
+    eval_dataset = ManifestVideoDataset(
+        eval_manifest,
+        frames,
+        sampling="middle",
+        apply_tat_spatial_transform=apply_tat_spatial,
+    )
+    optimization = config["probe"]["optimization"]
     batch_size = int(optimization["batch_size_per_rank"])
     train_loader, train_sampler = _loader(train_dataset, batch_size, rank, world_size, workers, shuffle=True)
     eval_loader, _ = _loader(eval_dataset, batch_size, rank, world_size, workers, shuffle=False)
@@ -173,7 +182,7 @@ def run_probe_training(
                 train_sampler.set_epoch(epoch)
             for batch in train_loader:
                 labels = batch["labels"].to(device, non_blocking=True)
-                frozen = provider.extract(batch["videos"])
+                frozen = provider.extract(batch["videos"], training=True)
                 # Inference tensors cannot be retained by autograd for probe
                 # weight gradients; clone the current batch into normal tensors.
                 representations = {
@@ -192,12 +201,14 @@ def run_probe_training(
     if rank == 0:
         destination = Path(output_dir).expanduser().resolve()
         destination.mkdir(parents=True, exist_ok=True)
-        (destination / "resolved_protocol.yaml").write_text(
-            protocol.path.read_text(encoding="utf-8"), encoding="utf-8"
+        (destination / "config.yaml").write_text(
+            resolved_config.read_text(encoding="utf-8"), encoding="utf-8"
         )
         result = {
-            "provider": provider_name,
+            "model": model_name,
             "world_size": world_size,
+            "frames": frames,
+            "preprocessing": model_config.get("preprocessing", "tat_paper_spec"),
             "train_examples": len(train_dataset),
             "evaluation_examples": len(eval_dataset),
             "metrics": metrics,
@@ -212,3 +223,28 @@ def run_probe_training(
     if world_size > 1:
         dist.barrier()
         dist.destroy_process_group()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", default=str(Path(__file__).with_name("config.yaml")))
+    parser.add_argument("--model", required=True, choices=("qwen3", "vjepa2_1", "videomaev2"))
+    parser.add_argument("--train-manifest", required=True)
+    parser.add_argument("--eval-manifest", required=True)
+    parser.add_argument("--model-root", required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--workers", type=int, default=8)
+    args = parser.parse_args()
+    run_probe_training(
+        args.config,
+        args.model,
+        args.train_manifest,
+        args.eval_manifest,
+        args.model_root,
+        args.output_dir,
+        args.workers,
+    )
+
+
+if __name__ == "__main__":
+    main()

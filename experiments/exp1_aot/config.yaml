@@ -1,0 +1,78 @@
+seed: 42
+
+models:
+  qwen3:
+    repo_id: Qwen/Qwen3-VL-8B-Instruct
+    revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
+    local_directory: qwen3-vl-8b-instruct
+    dtype: bfloat16
+    attention: sdpa
+    expected_architecture:
+      vision_depth: 27
+      vision_hidden_size: 1152
+      vision_output_size: 4096
+      deepstack_visual_indexes: [8, 16, 24]
+      language_depth: 36
+    representations:
+      vision_blocks: [8, 16, 24, 26]
+      include_visual_merger: true
+      post_deepstack_language_layers: [0, 1, 2]
+      include_final_language_visual_tokens: true
+    prompt: Determine whether the video is playing forward or backward.
+
+  vjepa2_1:
+    code_revision: 11b731c65ae7c964c256960ec6e3acf34d4eb29b
+    constructor: vjepa2_1_vit_large_384
+    checkpoint_url: https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitl_dist_vitG_384.pt
+    checkpoint_filename: vjepa2_1_vitl_dist_vitG_384.pt
+    checkpoint_key: ema_encoder
+    local_directory: vjepa2_1-vitl-384
+    dtype: bfloat16
+    expected_hidden_size: 1024
+    frames: 64
+    resolution: 384
+    preprocessing: provider_official
+
+  videomaev2:
+    repo_id: OpenGVLab/VideoMAEv2-giant
+    revision: d27568eb41ccb2d41bb191fc2e3fe5aad74942d4
+    local_directory: videomaev2-giant
+    dtype: bfloat16
+    trust_remote_code: true
+    expected_hidden_size: 1408
+
+datasets:
+  ssv2_train:
+    metadata_repo_id: HuggingFaceM4/something_something_v2
+    metadata_revision: 130db220f301e31219875231983a9827c8370aa1
+    split: train
+    expected_examples: 168913
+    direction_assignment: TAT-VQA/aot.py:assign_balanced_aot
+  aot_psyphybench:
+    metadata_revision: 2d62680ed58c1d6d4849f2bf665bd9214d9d1277
+    expected_source_clips: 212
+    expected_examples: 424
+
+video:
+  frames: 16
+  train_sampling: rand
+  evaluation_sampling: middle
+  reversal: virtual_reverse_before_decode
+  spatial_preprocessing: TAT-VQA/dataset/__init__.py:create_dataset
+
+probe:
+  source: Tracing the Arrow of Time, arXiv:2605.07568
+  implementation: facebookresearch/vjepa2/src/models/attentive_pooler.py:AttentiveClassifier
+  architecture:
+    heads: 16
+    mlp_ratio: 4.0
+    classes: 2
+  optimization:
+    optimizer: AdamW
+    learning_rate: 0.0001
+    weight_decay: 0.01
+    scheduler: cosine
+    final_learning_rate: 0.0
+    epochs: 1
+    batch_size_per_rank: 4
+  metrics: [accuracy, forward_f1, backward_f1, confusion_matrix]

@@ -1,8 +1,8 @@
-"""Published one-query attentive probe from the official V-JEPA 2 code.
+"""Published one-query attentive probe used by Experiment 1.
 
 The module structure and initialization are an attributed adaptation of
 ``facebookresearch/vjepa2/src/models/attentive_pooler.py`` and
-``src/models/utils/modules.py`` (MIT license), pinned in the protocol.
+``src/models/utils/modules.py`` (MIT license), pinned in this experiment's config.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Strict builders and readers for the released SSv2 and AoT datasets."""
+"""Dataset conversion, published frame sampling, decoding, and loading for Experiment 1."""
 
 from __future__ import annotations
 
@@ -9,6 +9,9 @@ import random
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
+
+import numpy as np
 
 
 class ManifestError(ValueError):
@@ -167,3 +170,97 @@ def read_jsonl(path: str | Path) -> list[VideoExample]:
     if not examples:
         raise ManifestError(f"manifest is empty: {manifest_path}")
     return examples
+
+
+def get_frame_indices(num_frames: int, video_length: int, sample: str) -> list[int]:
+    """TAT-VQA's released uniform-bin sampler (commit 7f6275b)."""
+
+    if sample not in {"rand", "middle"}:
+        raise ValueError("sample must be 'rand' or 'middle'")
+    accepted = min(num_frames, video_length)
+    intervals = np.linspace(0, video_length, accepted + 1).astype(int)
+    ranges = [(start, intervals[index + 1] - 1) for index, start in enumerate(intervals[:-1])]
+    if sample == "rand":
+        try:
+            indices = [random.choice(range(start, end)) for start, end in ranges]
+        except IndexError:
+            indices = sorted(np.random.permutation(video_length)[:accepted].tolist())
+    else:
+        indices = [(start + end) // 2 for start, end in ranges]
+    if len(indices) < num_frames:
+        indices.extend([indices[-1]] * (num_frames - len(indices)))
+    return indices
+
+
+def virtual_reversed_indices(indices: Sequence[int], video_length: int, backward: bool) -> list[int]:
+    """Decode the same frames from the virtual time-reversed video."""
+
+    if video_length <= 0 or any(index < 0 or index >= video_length for index in indices):
+        raise ValueError("invalid video length or sampled index")
+    return [video_length - 1 - index for index in indices] if backward else list(indices)
+
+
+class ManifestVideoDataset:
+    """Decode only the frames required by the published AoT experiment."""
+
+    def __init__(
+        self,
+        manifest: str | Path,
+        frames: int,
+        sampling: str,
+        apply_tat_spatial_transform: bool = True,
+    ):
+        self.examples = read_jsonl(manifest)
+        self.frames = frames
+        self.sampling = sampling
+        self.apply_tat_spatial_transform = apply_tat_spatial_transform
+
+    def _spatial_transform(self, video: Any) -> Any:
+        import torch
+        from torchvision.transforms import InterpolationMode, RandomHorizontalFlip, RandomResizedCrop
+        from torchvision.transforms.functional import resize
+
+        frames = torch.from_numpy(video).permute(0, 3, 1, 2)
+        if self.sampling == "rand":
+            frames = RandomResizedCrop(
+                224,
+                scale=(0.5, 1.0),
+                ratio=(0.75, 4 / 3),
+                interpolation=InterpolationMode.BICUBIC,
+            )(frames)
+            frames = RandomHorizontalFlip(p=0.5)(frames)
+        else:
+            frames = resize(frames, [224, 224], interpolation=InterpolationMode.BICUBIC, antialias=True)
+        return frames.permute(0, 2, 3, 1).numpy()
+
+    def __len__(self) -> int:
+        return len(self.examples)
+
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        import decord
+
+        example = self.examples[index]
+        reader = decord.VideoReader(example.video_path, num_threads=1)
+        video_length = len(reader)
+        sampled = get_frame_indices(self.frames, video_length, self.sampling)
+        decode_indices = virtual_reversed_indices(sampled, video_length, backward=bool(example.label))
+        video = reader.get_batch(decode_indices).asnumpy()
+        if self.apply_tat_spatial_transform:
+            video = self._spatial_transform(video)
+        return {
+            "example_id": example.example_id,
+            "video": video,
+            "label": example.label,
+            "motion_categories": example.motion_categories,
+        }
+
+
+def video_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:
+    import torch
+
+    return {
+        "example_ids": [item["example_id"] for item in batch],
+        "videos": [item["video"] for item in batch],
+        "labels": torch.tensor([item["label"] for item in batch], dtype=torch.long),
+        "motion_categories": [item["motion_categories"] for item in batch],
+    }

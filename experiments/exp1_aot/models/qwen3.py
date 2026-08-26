@@ -1,12 +1,9 @@
-"""Qwen3-VL representation extraction at protocol-fixed architecture points."""
+"""Qwen3-VL representation extraction at the experiment-fixed architecture points."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-
-from .base import RepresentationProvider
-
 
 def representation_names(config: dict[str, Any]) -> list[str]:
     requested = config["representations"]
@@ -21,7 +18,7 @@ def representation_names(config: dict[str, Any]) -> list[str]:
     return names
 
 
-class Qwen3VLProvider(RepresentationProvider):
+class Qwen3VLProvider:
     def __init__(self, model_path: str | Path, config: dict[str, Any], device: Any):
         import torch
         from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
@@ -65,7 +62,7 @@ class Qwen3VLProvider(RepresentationProvider):
         text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
         return [text] * batch_size
 
-    def extract(self, videos: list[Any]) -> dict[str, list[Any]]:
+    def extract(self, videos: list[Any], training: bool = False) -> dict[str, list[Any]]:
         import torch
 
         inputs = self.processor(

@@ -1,0 +1,29 @@
+model:
+  repo_id: Qwen/Qwen3-VL-8B-Instruct
+  revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
+  local_directory: qwen3-vl-8b-instruct
+  max_num_frames: 32
+  min_pixels: 50176
+  max_pixels: 1605632
+  attention: sdpa
+
+evaluation:
+  code: EvolvingLMMs-Lab/lmms-eval
+  code_revision: 7e71cb99ddf8fe85c29e5f256dca5200cbd6211d
+  batch_size: 1
+  tasks:
+    vitatecs_direction:
+      dataset: lscpku/VITATECS
+      revision: 76e097816a372a947962093249d31cdfe4a32135
+      split: test
+      metric: accuracy
+    tvbench:
+      dataset: FunAILab/TVBench
+      revision: 1d933b2aced8da5d6b315bb6a37807d126e05526
+      split: train
+      metric: tvbench_acc
+    mvbench:
+      dataset: OpenGVLab/MVBench
+      revision: a776e554280b99b70f00cc3eacd69a65e0727efc
+      split: train
+      metric: mvbench_accuracy

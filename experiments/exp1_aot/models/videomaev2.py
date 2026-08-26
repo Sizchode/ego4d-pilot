@@ -5,10 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .base import RepresentationProvider
-
-
-class VideoMAEv2Provider(RepresentationProvider):
+class VideoMAEv2Provider:
     def __init__(self, model_path: str | Path, config: dict[str, Any], device: Any):
         import torch
         from transformers import AutoImageProcessor, AutoModel
@@ -26,10 +23,10 @@ class VideoMAEv2Provider(RepresentationProvider):
         actual = int(self.model.model.embed_dim)
         expected = int(config["expected_hidden_size"])
         if actual != expected:
-            raise RuntimeError(f"VideoMAE V2 hidden size is {actual}; protocol requires {expected}")
+            raise RuntimeError(f"VideoMAE V2 hidden size is {actual}; config requires {expected}")
         self.representation_dimensions = {"last_encoder_tokens": actual}
 
-    def extract(self, videos: list[Any]) -> dict[str, list[Any]]:
+    def extract(self, videos: list[Any], training: bool = False) -> dict[str, list[Any]]:
         import torch
 
         processed = [
