@@ -6,6 +6,7 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import yaml
@@ -57,11 +58,22 @@ def main() -> None:
         "--output_path",
         str(output_dir),
     ]
-    subprocess.run(command, check=True)
-    new_results = sorted(set(output_dir.rglob("*_results.json")) - previous_results)
+    new_results: list[Path] = []
+    for attempt in range(1, 4):
+        subprocess.run(command, check=True)
+        new_results = sorted(set(output_dir.rglob("*_results.json")) - previous_results)
+        if len(new_results) == 1:
+            break
+        if attempt < 3:
+            print(
+                "lmms-eval produced no aggregate result; waiting 360 seconds before retry "
+                f"({attempt}/3)",
+                flush=True,
+            )
+            time.sleep(360)
     if len(new_results) != 1:
         raise RuntimeError(
-            "lmms-eval did not produce exactly one new aggregate result file; "
+            "lmms-eval did not produce exactly one new aggregate result file after three attempts; "
             f"found {len(new_results)}"
         )
     with new_results[0].open("r", encoding="utf-8") as handle:
