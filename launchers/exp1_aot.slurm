@@ -18,11 +18,12 @@ fi
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cache_root="${MODEL_CACHE_ROOT:-/oscar/scratch/$USER/temporal-transfer/models}"
+environment_root="${EXPERIMENT_ENV:-/oscar/scratch/$USER/temporal-transfer/env}"
 export HF_HOME="$cache_root/huggingface"
 export TORCH_HOME="$cache_root/torch"
 cd "$project_root"
 
-torchrun --standalone --nproc-per-node=6 experiments/exp1_aot/train.py \
+"$environment_root/bin/torchrun" --standalone --nproc-per-node=6 experiments/exp1_aot/train.py \
   --model "$1" \
   --train-manifest "$2" \
   --eval-manifest "$3" \

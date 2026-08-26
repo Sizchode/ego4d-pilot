@@ -36,6 +36,7 @@ def main() -> None:
         sys.executable,
         "-m",
         "lmms_eval",
+        "eval",
         "--model",
         "qwen3_vl",
         "--model_args",

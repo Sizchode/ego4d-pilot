@@ -21,13 +21,14 @@ protocol layer, report directory, vendored upstream repository, or test suite.
 
 ## Installation
 
-Create an environment with a CUDA build of PyTorch, then install the pinned
-research dependencies:
+The Oscar launchers use `/oscar/scratch/$USER/temporal-transfer/env` by
+default. Create it with Python 3.11 and install the research dependencies:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv venv --python 3.11 /oscar/scratch/$USER/temporal-transfer/env
+UV_CACHE_DIR=/oscar/scratch/$USER/temporal-transfer/uv-cache uv pip install \
+  --python /oscar/scratch/$USER/temporal-transfer/env/bin/python \
+  -r requirements.txt
 ```
 
 Transformers and lmms-eval are installed directly from the commits used by the
@@ -40,6 +41,7 @@ There is no separate model-download step. Each experiment resolves the exact
 release on first use and reuses the shared Hugging Face/PyTorch cache under
 `/oscar/scratch/$USER/temporal-transfer/models`. Set `MODEL_CACHE_ROOT` before
 `sbatch` to use another cache location.
+Set `EXPERIMENT_ENV` to override the environment path.
 
 ## Experiment 1: Arrow-of-Time probing
 
