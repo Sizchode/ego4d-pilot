@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -37,6 +38,8 @@ def main() -> None:
             f"attn_implementation={model['attention']}",
         ]
     )
+    output_dir = Path(args.output_dir).expanduser().resolve()
+    previous_results = set(output_dir.rglob("*_results.json")) if output_dir.exists() else set()
     command = [
         sys.executable,
         "-m",
@@ -52,9 +55,19 @@ def main() -> None:
         str(evaluation["batch_size"]),
         "--log_samples",
         "--output_path",
-        str(Path(args.output_dir).expanduser().resolve()),
+        str(output_dir),
     ]
     subprocess.run(command, check=True)
+    new_results = sorted(set(output_dir.rglob("*_results.json")) - previous_results)
+    if len(new_results) != 1:
+        raise RuntimeError(
+            "lmms-eval did not produce exactly one new aggregate result file; "
+            f"found {len(new_results)}"
+        )
+    with new_results[0].open("r", encoding="utf-8") as handle:
+        result = json.load(handle)
+    if not isinstance(result.get("results"), dict) or not result["results"]:
+        raise RuntimeError(f"lmms-eval aggregate result is incomplete: {new_results[0]}")
 
 
 if __name__ == "__main__":
