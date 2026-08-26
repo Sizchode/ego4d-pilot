@@ -13,7 +13,6 @@ import yaml
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(Path(__file__).with_name("config.yaml")))
-    parser.add_argument("--model-root", required=True)
     parser.add_argument("--output-dir", required=True)
     args = parser.parse_args()
 
@@ -21,7 +20,9 @@ def main() -> None:
         config = yaml.safe_load(handle)
     model = config["model"]
     evaluation = config["evaluation"]
-    model_path = Path(args.model_root).expanduser().resolve() / model["local_directory"]
+    from huggingface_hub import snapshot_download
+
+    model_path = snapshot_download(repo_id=model["repo_id"], revision=model["revision"])
     model_args = ",".join(
         [
             f"pretrained={model_path}",

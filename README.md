@@ -13,7 +13,6 @@ experiments/
   exp1_aot/              # config, data loader, backbones, probe, and training
   exp2_vlm_eval/         # config and official lmms-eval entry point
 launchers/               # Slurm launchers only
-scripts/                 # shared data/model preparation utilities only
 requirements.txt
 ```
 
@@ -33,19 +32,14 @@ pip install -r requirements.txt
 
 Transformers and lmms-eval are installed directly from the commits used by the
 experiments. Qwen3-VL and VideoMAE V2 are loaded from pinned Hugging Face
-snapshots. V-JEPA2.1 is loaded through Meta's official PyTorch Hub entry at a
+revisions. V-JEPA2.1 is loaded through Meta's official PyTorch Hub entry at a
 pinned commit because Meta has not released V-JEPA2.1 through its Hugging Face
 collection; its checkpoint comes from Meta's official download URL.
 
-## Download models
-
-```bash
-python scripts/download_models.py \
-  --output-root /oscar/scratch/$USER/temporal-transfer/models
-```
-
-Pass `--model qwen3`, `--model vjepa2_1`, or `--model videomaev2` to download
-one model only.
+There is no separate model-download step. Each experiment resolves the exact
+release on first use and reuses the shared Hugging Face/PyTorch cache under
+`/oscar/scratch/$USER/temporal-transfer/models`. Set `MODEL_CACHE_ROOT` before
+`sbatch` to use another cache location.
 
 ## Experiment 1: Arrow-of-Time probing
 
@@ -75,7 +69,6 @@ sbatch launchers/exp1_aot.slurm \
   vjepa2_1 \
   /scratch/path/ssv2_train_aot.jsonl \
   /scratch/path/aot_psyphybench.jsonl \
-  /oscar/scratch/$USER/temporal-transfer/models \
   /oscar/scratch/$USER/temporal-transfer/runs/vjepa2_1
 ```
 
@@ -90,6 +83,5 @@ metrics recorded in
 
 ```bash
 sbatch launchers/exp2_vlm_eval.slurm \
-  /oscar/scratch/$USER/temporal-transfer/models \
   /oscar/scratch/$USER/temporal-transfer/runs/qwen3_vlm_eval
 ```

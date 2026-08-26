@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
+
 
 def representation_names(config: dict[str, Any]) -> list[str]:
     requested = config["representations"]
@@ -19,17 +19,19 @@ def representation_names(config: dict[str, Any]) -> list[str]:
 
 
 class Qwen3VLProvider:
-    def __init__(self, model_path: str | Path, config: dict[str, Any], device: Any):
+    def __init__(self, config: dict[str, Any], device: Any):
         import torch
         from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
 
         dtype = getattr(torch, config["dtype"])
         self.config = config
         self.device = device
-        self.processor = AutoProcessor.from_pretrained(model_path, local_files_only=True)
+        model_id = config["repo_id"]
+        revision = config["revision"]
+        self.processor = AutoProcessor.from_pretrained(model_id, revision=revision)
         self.model = Qwen3VLForConditionalGeneration.from_pretrained(
-            model_path,
-            local_files_only=True,
+            model_id,
+            revision=revision,
             torch_dtype=dtype,
             attn_implementation=config["attention"],
         ).to(device)

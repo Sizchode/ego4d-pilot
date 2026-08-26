@@ -11,18 +11,20 @@
 
 set -euo pipefail
 
-if [[ "$#" -ne 5 ]]; then
-  echo "usage: sbatch $0 MODEL TRAIN_MANIFEST EVAL_MANIFEST MODEL_ROOT OUTPUT_DIR" >&2
+if [[ "$#" -ne 4 ]]; then
+  echo "usage: sbatch $0 MODEL TRAIN_MANIFEST EVAL_MANIFEST OUTPUT_DIR" >&2
   exit 2
 fi
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cache_root="${MODEL_CACHE_ROOT:-/oscar/scratch/$USER/temporal-transfer/models}"
+export HF_HOME="$cache_root/huggingface"
+export TORCH_HOME="$cache_root/torch"
 cd "$project_root"
 
 torchrun --standalone --nproc-per-node=6 experiments/exp1_aot/train.py \
   --model "$1" \
   --train-manifest "$2" \
   --eval-manifest "$3" \
-  --model-root "$4" \
-  --output-dir "$5" \
+  --output-dir "$4" \
   --workers 12

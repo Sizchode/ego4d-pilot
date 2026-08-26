@@ -121,7 +121,6 @@ def run_probe_training(
     model_name: str,
     train_manifest: str | Path,
     eval_manifest: str | Path,
-    model_root: str | Path,
     output_dir: str | Path,
     workers: int,
 ) -> None:
@@ -134,7 +133,17 @@ def run_probe_training(
     _seed_everything(int(config["seed"]), rank)
 
     model_config = config["models"][model_name]
-    provider = build_model(model_name, model_root, model_config, device)
+    if model_name == "vjepa2_1" and world_size > 1:
+        # PyTorch Hub does not provide Hugging Face's cross-process download
+        # lock. Rank zero fills the shared cache before the other ranks load.
+        if rank == 0:
+            provider = build_model(model_name, model_config, device)
+            dist.barrier()
+        else:
+            dist.barrier()
+            provider = build_model(model_name, model_config, device)
+    else:
+        provider = build_model(model_name, model_config, device)
     architecture = config["probe"]["architecture"]
     probes = MultiRepresentationProbe(
         provider.representation_dimensions,
@@ -231,7 +240,6 @@ def main() -> None:
     parser.add_argument("--model", required=True, choices=("qwen3", "vjepa2_1", "videomaev2"))
     parser.add_argument("--train-manifest", required=True)
     parser.add_argument("--eval-manifest", required=True)
-    parser.add_argument("--model-root", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args()
@@ -240,7 +248,6 @@ def main() -> None:
         args.model,
         args.train_manifest,
         args.eval_manifest,
-        args.model_root,
         args.output_dir,
         args.workers,
     )

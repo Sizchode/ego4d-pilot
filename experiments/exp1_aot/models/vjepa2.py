@@ -17,16 +17,12 @@ def _clean_official_backbone_keys(state_dict: dict[str, Any]) -> dict[str, Any]:
 
 
 class VJepa2Provider:
-    def __init__(self, model_path: str | Path, config: dict[str, Any], device: Any):
+    def __init__(self, config: dict[str, Any], device: Any):
         import torch
 
         self.device = device
         self.dtype = getattr(torch, config["dtype"])
         self.resolution = int(config["resolution"])
-        checkpoint = Path(model_path).expanduser().resolve() / config["checkpoint_filename"]
-        if not checkpoint.is_file():
-            raise RuntimeError(f"official V-JEPA 2.1 checkpoint is missing: {checkpoint}")
-
         hub_repository = f"facebookresearch/vjepa2:{config['code_revision']}"
         encoder, _predictor = torch.hub.load(
             hub_repository,
@@ -41,7 +37,12 @@ class VJepa2Provider:
             raise RuntimeError(f"PyTorch Hub did not create the expected pinned cache: {hub_cache}")
         if str(hub_cache) not in sys.path:
             sys.path.insert(0, str(hub_cache))
-        released = torch.load(checkpoint, map_location="cpu", weights_only=True)
+        released = torch.hub.load_state_dict_from_url(
+            config["checkpoint_url"],
+            map_location="cpu",
+            file_name=config["checkpoint_filename"],
+            weights_only=True,
+        )
         weights = _clean_official_backbone_keys(released[config["checkpoint_key"]])
         encoder.load_state_dict(weights, strict=True)
         self.model = encoder.to(device=device, dtype=self.dtype).eval().requires_grad_(False)

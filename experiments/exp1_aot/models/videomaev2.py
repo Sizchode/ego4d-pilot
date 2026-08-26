@@ -2,20 +2,26 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
+
 class VideoMAEv2Provider:
-    def __init__(self, model_path: str | Path, config: dict[str, Any], device: Any):
+    def __init__(self, config: dict[str, Any], device: Any):
         import torch
         from transformers import AutoImageProcessor, AutoModel
 
         dtype = getattr(torch, config["dtype"])
         self.device = device
-        self.processor = AutoImageProcessor.from_pretrained(model_path, local_files_only=True)
+        model_id = config["repo_id"]
+        revision = config["revision"]
+        self.processor = AutoImageProcessor.from_pretrained(
+            model_id,
+            revision=revision,
+            trust_remote_code=bool(config["trust_remote_code"]),
+        )
         self.model = AutoModel.from_pretrained(
-            model_path,
-            local_files_only=True,
+            model_id,
+            revision=revision,
             trust_remote_code=bool(config["trust_remote_code"]),
             torch_dtype=dtype,
         ).to(device)

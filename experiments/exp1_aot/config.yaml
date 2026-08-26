@@ -4,7 +4,6 @@ models:
   qwen3:
     repo_id: Qwen/Qwen3-VL-8B-Instruct
     revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
-    local_directory: qwen3-vl-8b-instruct
     dtype: bfloat16
     attention: sdpa
     expected_architecture:
@@ -26,7 +25,6 @@ models:
     checkpoint_url: https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitl_dist_vitG_384.pt
     checkpoint_filename: vjepa2_1_vitl_dist_vitG_384.pt
     checkpoint_key: ema_encoder
-    local_directory: vjepa2_1-vitl-384
     dtype: bfloat16
     expected_hidden_size: 1024
     frames: 64
@@ -36,7 +34,6 @@ models:
   videomaev2:
     repo_id: OpenGVLab/VideoMAEv2-giant
     revision: d27568eb41ccb2d41bb191fc2e3fe5aad74942d4
-    local_directory: videomaev2-giant
     dtype: bfloat16
     trust_remote_code: true
     expected_hidden_size: 1408

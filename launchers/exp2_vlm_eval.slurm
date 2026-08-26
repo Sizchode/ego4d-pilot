@@ -11,12 +11,15 @@
 
 set -euo pipefail
 
-if [[ "$#" -ne 2 ]]; then
-  echo "usage: sbatch $0 MODEL_ROOT OUTPUT_DIR" >&2
+if [[ "$#" -ne 1 ]]; then
+  echo "usage: sbatch $0 OUTPUT_DIR" >&2
   exit 2
 fi
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cache_root="${MODEL_CACHE_ROOT:-/oscar/scratch/$USER/temporal-transfer/models}"
+export HF_HOME="$cache_root/huggingface"
+export TORCH_HOME="$cache_root/torch"
 cd "$project_root"
 
-python experiments/exp2_vlm_eval/evaluate.py --model-root "$1" --output-dir "$2"
+python experiments/exp2_vlm_eval/evaluate.py --output-dir "$1"
