@@ -94,3 +94,6 @@ metrics recorded in
 sbatch launchers/exp2_vlm_eval.slurm \
   /oscar/scratch/$USER/temporal-transfer/runs/qwen3_vlm_eval
 ```
+
+Pass one of `vitatecs_direction`, `tvbench`, or `mvbench` as a second argument
+to submit the official tasks independently.

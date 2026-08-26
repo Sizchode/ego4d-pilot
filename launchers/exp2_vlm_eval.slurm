@@ -11,8 +11,8 @@
 
 set -euo pipefail
 
-if [[ "$#" -ne 1 ]]; then
-  echo "usage: sbatch $0 OUTPUT_DIR" >&2
+if [[ "$#" -lt 1 || "$#" -gt 2 ]]; then
+  echo "usage: sbatch $0 OUTPUT_DIR [TASK]" >&2
   exit 2
 fi
 
@@ -23,4 +23,8 @@ export HF_HOME="$cache_root/huggingface"
 export TORCH_HOME="$cache_root/torch"
 cd "$project_root"
 
-"$environment_root/bin/python" experiments/exp2_vlm_eval/evaluate.py --output-dir "$1"
+command=("$environment_root/bin/python" experiments/exp2_vlm_eval/evaluate.py --output-dir "$1")
+if [[ "$#" -eq 2 ]]; then
+  command+=(--tasks "$2")
+fi
+"${command[@]}"
