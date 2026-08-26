@@ -18,7 +18,7 @@ fi
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cache_root="${MODEL_CACHE_ROOT:-/oscar/scratch/$USER/temporal-transfer/models}"
-environment_root="${EXPERIMENT_ENV:-/oscar/scratch/$USER/temporal-transfer/env}"
+environment_root="${EXPERIMENT_ENV:-/oscar/scratch/$USER/temporal-transfer/env-cu128}"
 export HF_HOME="$cache_root/huggingface"
 export TORCH_HOME="$cache_root/torch"
 cd "$project_root"

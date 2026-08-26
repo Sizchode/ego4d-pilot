@@ -20,16 +20,20 @@ models:
     prompt: Determine whether the video is playing forward or backward.
 
   vjepa2_1:
-    code_revision: 11b731c65ae7c964c256960ec6e3acf34d4eb29b
-    constructor: vjepa2_1_vit_large_384
-    checkpoint_url: https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitl_dist_vitG_384.pt
-    checkpoint_filename: vjepa2_1_vitl_dist_vitG_384.pt
-    checkpoint_key: ema_encoder
-    dtype: bfloat16
+    repo_id: Dev-Jahn/vjepa2.1-vitl-fpc64-384
+    revision: 712c91d96b561e658385aac4ec52942e5b7fcaa6
+    trust_remote_code: true
+    official_source_revision: 204698b45b3712590f06245fbfba32d3be539812
+    official_checkpoint: https://dl.fbaipublicfiles.com/vjepa2/vjepa2_1_vitl_dist_vitG_384.pt
+    conversion_verification:
+      threshold: 0.001
+      max_abs_error_16_frames: 0.0
+      max_abs_error_1_frame: 0.0005617141723632812
+    dtype: float32
     expected_hidden_size: 1024
     frames: 64
     resolution: 384
-    preprocessing: provider_official
+    preprocessing: meta_official_frozen_probe
 
   videomaev2:
     repo_id: OpenGVLab/VideoMAEv2-giant

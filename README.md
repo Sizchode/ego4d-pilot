@@ -21,21 +21,28 @@ protocol layer, report directory, vendored upstream repository, or test suite.
 
 ## Installation
 
-The Oscar launchers use `/oscar/scratch/$USER/temporal-transfer/env` by
+The Oscar launchers use `/oscar/scratch/$USER/temporal-transfer/env-cu128` by
 default. Create it with Python 3.11 and install the research dependencies:
 
 ```bash
-uv venv --python 3.11 /oscar/scratch/$USER/temporal-transfer/env
+uv venv --python 3.11 /oscar/scratch/$USER/temporal-transfer/env-cu128
 UV_CACHE_DIR=/oscar/scratch/$USER/temporal-transfer/uv-cache uv pip install \
-  --python /oscar/scratch/$USER/temporal-transfer/env/bin/python \
+  --python /oscar/scratch/$USER/temporal-transfer/env-cu128/bin/python \
   -r requirements.txt
 ```
 
 Transformers and lmms-eval are installed directly from the commits used by the
 experiments. Qwen3-VL and VideoMAE V2 are loaded from pinned Hugging Face
-revisions. V-JEPA2.1 is loaded through Meta's official PyTorch Hub entry at a
-pinned commit because Meta has not released V-JEPA2.1 through its Hugging Face
-collection; its checkpoint comes from Meta's official download URL.
+revisions. V-JEPA2.1 uses the pinned
+`Dev-Jahn/vjepa2.1-vitl-fpc64-384` Hugging Face conversion. Before adoption,
+its encoder output was checked against Meta's official V-JEPA2.1 ViT-L/384
+checkpoint at Meta source revision `204698b45b3712590f06245fbfba32d3be539812`:
+the 16-frame maximum absolute error was zero and the one-frame error was
+`5.62e-4`, both below the conversion author's published `1e-3` threshold.
+Because the conversion has no processor, Experiment 1 implements Meta's exact
+released frozen-probe spatial transform rather than introducing a new one. The
+adapter runs in fp32 because this conversion's SDPA path produces mixed Q/K/V
+dtypes when the full model is cast to bf16.
 
 There is no separate model-download step. Each experiment resolves the exact
 release on first use and reuses the shared Hugging Face/PyTorch cache under

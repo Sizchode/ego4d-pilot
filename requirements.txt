@@ -1,7 +1,7 @@
 numpy>=1.26,<3
 PyYAML>=6,<7
-torch>=2.4
-torchvision>=0.19
+torch @ https://download-r2.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp311-cp311-manylinux_2_28_x86_64.whl
+torchvision @ https://download-r2.pytorch.org/whl/cu128/torchvision-0.23.0%2Bcu128-cp311-cp311-manylinux_2_28_x86_64.whl
 decord>=0.6.0
 av>=12,<17
 einops>=0.8,<1

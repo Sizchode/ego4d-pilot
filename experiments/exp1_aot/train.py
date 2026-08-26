@@ -133,17 +133,7 @@ def run_probe_training(
     _seed_everything(int(config["seed"]), rank)
 
     model_config = config["models"][model_name]
-    if model_name == "vjepa2_1" and world_size > 1:
-        # PyTorch Hub does not provide Hugging Face's cross-process download
-        # lock. Rank zero fills the shared cache before the other ranks load.
-        if rank == 0:
-            provider = build_model(model_name, model_config, device)
-            dist.barrier()
-        else:
-            dist.barrier()
-            provider = build_model(model_name, model_config, device)
-    else:
-        provider = build_model(model_name, model_config, device)
+    provider = build_model(model_name, model_config, device)
     architecture = config["probe"]["architecture"]
     probes = MultiRepresentationProbe(
         provider.representation_dimensions,
@@ -155,7 +145,7 @@ def run_probe_training(
         probes = DistributedDataParallel(probes, device_ids=[local_rank])
 
     frames = int(model_config.get("frames", config["video"]["frames"]))
-    apply_tat_spatial = model_config.get("preprocessing") != "provider_official"
+    apply_tat_spatial = model_config.get("preprocessing") != "meta_official_frozen_probe"
     train_dataset = ManifestVideoDataset(
         train_manifest,
         frames,
