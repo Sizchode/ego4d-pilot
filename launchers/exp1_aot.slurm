@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=84
 #SBATCH --mem=1100G
-#SBATCH --gres=gpu:l40s:6
+#SBATCH --gres=gpu:6
 #SBATCH --time=24:00:00
 #SBATCH --output=slurm-%x-%j.out
 
