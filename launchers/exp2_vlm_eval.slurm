@@ -16,7 +16,11 @@ if [[ "$#" -lt 1 || "$#" -gt 2 ]]; then
   exit 2
 fi
 
-project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+project_root="${PROJECT_ROOT:-${SLURM_SUBMIT_DIR:?submit from the repository root or set PROJECT_ROOT}}"
+if [[ ! -f "$project_root/experiments/exp2_vlm_eval/evaluate.py" ]]; then
+  echo "Experiment 2 entry point not found under $project_root" >&2
+  exit 2
+fi
 cache_root="${MODEL_CACHE_ROOT:-/oscar/scratch/$USER/temporal-transfer/models}"
 environment_root="${EXPERIMENT_ENV:-/oscar/scratch/$USER/temporal-transfer/env-cu128}"
 export HF_HOME="$cache_root/huggingface"
