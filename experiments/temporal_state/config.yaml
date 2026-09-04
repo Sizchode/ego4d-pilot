@@ -1,0 +1,84 @@
+protocol_version: final-video-temporal-state-v1
+
+models:
+  qwen3_vl:
+    repo_id: Qwen/Qwen3-VL-8B-Instruct
+    adapter: temporal_state.adapters.qwen3:Qwen3VLAdapter
+    processor: official_huggingface_processor
+    compact_definition: last_language_boundary_token_before_generation
+    distributed_definition: decoder_video_conditioned_token_positions
+    language_layers: all
+  internvl3_5:
+    repo_id: OpenGVLab/InternVL3_5-8B-Instruct
+    adapter: temporal_state.adapters.internvl35:InternVL35Adapter
+    processor: official_internvl_processor
+    compact_definition: last_language_boundary_token_before_generation
+    distributed_definition: decoder_video_conditioned_token_positions
+    language_layers: all
+  minicpm_v45:
+    repo_id: openbmb/MiniCPM-V-4_5
+    adapter: temporal_state.adapters.minicpm:MiniCPMV45Adapter
+    processor: official_minicpm_v_processor
+    compact_definition: last_language_boundary_token_before_generation
+    distributed_definition: decoder_video_conditioned_token_positions
+    language_layers: all
+  vjepa2_vitl:
+    repo_id: facebook/vjepa2-vitl-fpc64-256
+    adapter: temporal_state.adapters.vjepa2:VJEPA2ViTLAdapter
+    processor: official_vjepa2_frozen_probe
+    compact_definition: unsupported_by_protocol
+    distributed_definition: complete_encoder_token_representation
+    encoder_layers: all
+
+datasets:
+  ssv2:
+    purpose: H1_H2
+    archive_repo_id: morpheushoc/something-something-v2
+    metadata_source: official_ssv2_annotations
+    official_splits: {train: 168913, validation: 24777}
+    label_source: official_action_label
+  nextqa:
+    purpose: H3_H4
+    media_repo_id: rhymes-ai/NeXTVideo
+    annotations_source: https://github.com/doc-doc/NExT-QA/tree/main/dataset/nextqa
+    official_splits: {train: 3870, val: 570, test: 1000}
+    categories: [temporal, causal, descriptive]
+  egotempo:
+    purpose: H4_native_behavior
+    metadata_source: https://github.com/google-research-datasets/egotempo
+    video_source: ego4d_official_clip_access
+    official_splits: not_redefined
+  vstar:
+    purpose: H4_native_behavior
+    dataset_repo_id: V-STaR-Bench/V-STaR
+    code_source: https://github.com/V-STaR-Bench/V-STaR
+    official_splits: not_redefined
+
+prompts:
+  ssv2: null
+  nextqa: official_implementation_generated_prompt_file
+
+video:
+  no_common_sampler: true
+  preprocessing: model_official_only
+  no_layer_concat: true
+  no_manual_pooling: true
+
+probes:
+  compact: linear_classifier
+  distributed: vjepa2_official_attentive_probe_family
+  layer_selection: raw_layer_index_for_training
+  cross_model_plot: normalized_depth_only
+  classes: {ssv2: 174, nextqa: 5}
+  optimization:
+    epochs: 20
+    batch_size: 32
+    learning_rate: 0.0001
+    weight_decay: 0.01
+    heads: 16
+
+evaluations:
+  ssv2_metric: validation_top1_accuracy
+  nextqa_metrics: [overall_accuracy, temporal_accuracy, causal_accuracy, descriptive_accuracy]
+  egotempo: official_evaluation_and_judge_protocol
+  vstar: official_what_when_where_evaluation
