@@ -1,79 +1,73 @@
-# Video temporal state experiments
+# Video Temporal Resampling / Latent Stability
 
-This repository now contains a scaffold for the final plan in
-`video_temporal_state_experiment_plan_cn_final.md`. The existing
-`experiments/exp1_aot` and `experiments/exp2_vlm_eval` directories are kept as
-historical experiments; the new protocol lives under
-`experiments/temporal_state`.
+This repository implements the first-stage pilot in the current plan. The
+minimal closed loop is:
 
-The local development path is intentionally resource-free. It validates the
-protocol and manifest files, while model weights, video media, feature shards,
-and probe runs belong on HPC. Data and run products are ignored by git.
+```text
+SSv2 + DINOv3       image-foundation control
+SSv2 + V-JEPA 2     native predictive-video reference
+NExT-QA + Qwen3-VL  target Video-MLLM behavior
+C0 canonical vs C2 temporal offset first
+```
 
-## Local checks
+The old AoT, VideoMAE, InternVL/MiniCPM, and broad benchmark experiments were
+removed. Model loaders now live under [`src/models`](src/models); data,
+timestamp schedules, probes, and experiment scripts live under
+[`src/temporal_resampling`](src/temporal_resampling) and [`scripts`](scripts).
+
+Local development does not require checkpoints, videos, GPU, or PyAV. It checks
+the protocol, manifest schema, and schedule math only:
 
 ```bash
 python -m unittest discover -s tests -v
-python -m compileall -q experiments
+python -m compileall -q src scripts tests
 ```
 
-## HPC data preparation
+## HPC preparation
 
-Pin a revision for every Hugging Face download when starting a real run:
+All model and dataset revisions must be immutable. The scripts reject missing
+revisions and do not invent canonical schedules. First export the official
+SSv2 label map and canonical timestamp JSON, then build a manifest:
 
 ```bash
-python -m experiments.temporal_state.prepare_data download ssv2 \
-  --output-dir /scratch/temporal-state/data/ssv2 --revision <exact-revision>
-
-python -m experiments.temporal_state.prepare_data manifest ssv2 \
-  --annotations /path/to/official/train.json \
+python -m scripts.prepare_data manifest ssv2 \
+  --annotations /path/to/official/ssv2_train.json \
   --video-root /path/to/ssv2/videos \
-  --label-map /path/to/official/ssv2-label-map.json \
   --split train \
-  --output /scratch/temporal-state/manifests/ssv2-train.jsonl
+  --label-map /path/to/official/ssv2-label-map.json \
+  --annotation-revision official-source-revision \
+  --output /scratch/temporal-resampling/ssv2-train.jsonl
 ```
 
-Feature extraction additionally requires a JSON file containing the exact
-official prompt for every manifest `example_id`; the scaffold does not invent
-an H1 or NExT-QA prompt template.
+The canonical schedule file is a JSON/YAML mapping with immutable provenance:
+`source`, `revision`, `dataset`, `model`, and `schedules` (`sample_id` to the
+official C0 timestamp list). C1 additionally requires an explicit
+`--lower-rate-ratio`; the default audit/render commands run C0 and C2 first.
 
-Use `download nextvideo` for NExT-QA media and `download vstar` for V-STaR
-media. NExT-QA annotations come from the official NExT-QA repository and are
-converted with the `nextqa` manifest command. EgoTempo is intentionally not
-downloaded by this tool: obtain only its official clip IDs through the
-Ego4D-authorized workflow.
-
-## Feature extraction and probes
-
-The public adapter seam is:
-
-```text
-extract_compact_state(video_paths, prompts)
-extract_distributed_state(video_paths, prompts)
-```
-
-Each decoder layer is stored independently. There is no cross-layer
-concatenation, common mean/max pooling, synthetic V-JEPA compact state, or
-new metric. NExT-QA reports overall, temporal, causal, and descriptive
-accuracy only.
-
-The Qwen3-VL adapter and V-JEPA 2 protocol boundary are present. InternVL3.5
-and MiniCPM-V 4.5 stop with explicit errors until their official local
-processor/chat-template/hook paths are pinned. See
-[`experiments/temporal_state/OPEN_QUESTIONS.md`](experiments/temporal_state/OPEN_QUESTIONS.md).
-
-After those gates are resolved, submit:
+Audit C0/C1/C2/C3 with the exact official C0 timestamps:
 
 ```bash
-sbatch launchers/temporal_state_probe.slurm \
-  qwen3_vl \
-  /scratch/temporal-state/manifests/ssv2-train.jsonl \
-  /scratch/temporal-state/manifests/ssv2-validation.jsonl \
-  ssv2 \
-  /scratch/temporal-state/runs/qwen3_vl \
-  /scratch/temporal-state/prompts/ssv2-official.json
+python -m scripts.audit_resampling \
+  --manifest /scratch/temporal-resampling/ssv2-val.jsonl \
+  --canonical-schedules /scratch/temporal-resampling/ssv2-c0-timestamps.json \
+  --offset-seconds 0.10 \
+  --output /scratch/temporal-resampling/ssv2-schedule-audit.json
 ```
 
-EgoTempo and V-STaR must be run through their official evaluators. The
-`run_native_eval.py` wrapper archives the exact command and raw stdout/stderr;
-it does not reimplement their metrics.
+Render the first 20 samples and inspect the contact sheets before scaling up:
+
+```bash
+python -m scripts.render_schedule_samples \
+  --manifest /scratch/temporal-resampling/ssv2-val.jsonl \
+  --canonical-schedules /scratch/temporal-resampling/ssv2-c0-timestamps.json \
+  --offset-seconds 0.10 \
+  --output-dir /scratch/temporal-resampling/sample-sheets
+```
+
+The C0-trained cross-sampling probe is run by
+[`scripts/train_cross_sampling_probe.py`](scripts/train_cross_sampling_probe.py).
+It reports only `Top1(C0..C3)` and `Delta(C1..C3)`. Oracle probes are not the
+primary result.
+
+See [`ENVIRONMENT.md`](ENVIRONMENT.md) and [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md)
+for HPC gates. No optional benchmark is selected by this scaffold.

@@ -16,6 +16,13 @@ checkpoints/
 envs/
 runs/
 logs/
+results/
+!logs/
+logs/*
+!logs/.gitkeep
+!results/
+results/*
+!results/.gitkeep
 *.pt
 *.pth
 *.safetensors

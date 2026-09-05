@@ -1,0 +1,78 @@
+protocol_version: video-temporal-resampling-latent-stability-v1
+
+models:
+  dinov3:
+    family: image_foundation
+    repo_id: null
+    revision: null
+    loader: src.models.dinov3:DINOv3Loader
+    frozen: true
+    representation: per_frame_image_features
+  vjepa2:
+    family: native_predictive_video
+    repo_id: null
+    revision: null
+    loader: src.models.vjepa2:VJEPA2Loader
+    frozen: true
+    representation: layerwise_native_tokens
+  qwen3_vl:
+    family: video_mllm
+    repo_id: Qwen/Qwen3-VL-8B-Instruct
+    revision: null
+    loader: src.models.qwen3:Qwen3VLLoader
+    dtype: bfloat16
+    decoder_layers: [0, 12, 24, 35]
+    frozen: true
+    representation: vision_projector_decoder_tokens
+
+datasets:
+  ssv2:
+    purpose: behavioral_and_representation_transfer
+    media_repo_id: null
+    metadata_source: official_something_something_v2_annotations
+    official_splits: [train, validation]
+    classes: 174
+  nextqa:
+    purpose: qwen_native_behavior
+    media_repo_id: null
+    annotation_source: https://github.com/doc-doc/NExT-QA/tree/main/dataset/nextqa
+    official_splits: [train, val]
+    setting: multiple_choice
+    categories: [temporal, causal, descriptive]
+
+sampling:
+  canonical_condition: C0
+  conditions: [C0, C1, C2, C3]
+  canonical_source: model_and_benchmark_official_protocol
+  c1:
+    type: lower_rate_same_coverage
+    lower_rate_ratio: null
+  c2:
+    type: temporal_offset
+    offset_seconds: null
+    boundary_policy: reject_out_of_bounds
+  c3:
+    type: deterministic_alternating_intervals
+    interval_weights: [0.5, 1.5]
+    coverage: canonical_span
+  record_real_timestamps: true
+  record_frame_indices: true
+
+probes:
+  train_condition: C0
+  transfer_conditions: [C0, C1, C2, C3]
+  dino_readout: fixed_mean_temporal_readout
+  vjepa_readout: official_frozen_attentive_probe
+  qwen_readout: frozen_feature_probe
+  ssv2_metric: top1_accuracy
+  oracle_is_secondary_only: true
+  optimization:
+    epochs: 20
+    batch_size: 32
+    learning_rate: 0.0001
+    weight_decay: 0.01
+    attentive_heads: 16
+
+native_evaluation:
+  qwen_nextqa_decoding: deterministic
+  qwen_label_mapping: exact_multiple_choice_only
