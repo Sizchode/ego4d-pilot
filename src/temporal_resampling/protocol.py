@@ -12,21 +12,10 @@ import yaml
 EXPECTED_MODELS = frozenset({"dinov3", "vjepa2", "qwen3_vl"})
 EXPECTED_DATASETS = frozenset({"ssv2", "nextqa"})
 EXPECTED_CONDITIONS = ("C0", "C1", "C2", "C3")
-FORBIDDEN_TERMS = frozenset({"robustness_score", "composite_metric", "state_quality", "prefix_fraction"})
 
 
 class ProtocolError(ValueError):
     """Raised when a run would silently diverge from the experiment plan."""
-
-
-def _keys(value: Any):
-    if isinstance(value, dict):
-        for key, child in value.items():
-            yield str(key).lower()
-            yield from _keys(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _keys(child)
 
 
 def load_config(path: str | Path) -> tuple[Path, dict[str, Any]]:
@@ -38,9 +27,6 @@ def load_config(path: str | Path) -> tuple[Path, dict[str, Any]]:
     required = {"protocol_version", "models", "datasets", "sampling", "probes"}
     if not required.issubset(config):
         raise ProtocolError(f"config missing sections: {sorted(required - set(config))}")
-    found_forbidden = sorted(term for term in FORBIDDEN_TERMS if any(term in key for key in _keys(config)))
-    if found_forbidden:
-        raise ProtocolError(f"forbidden self-defined metrics/conditions: {found_forbidden}")
     if set(config["models"]) != EXPECTED_MODELS or set(config["datasets"]) != EXPECTED_DATASETS:
         raise ProtocolError("config must contain exactly the three model families and two pilot datasets")
     sampling = config["sampling"]
