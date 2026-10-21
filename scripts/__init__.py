@@ -1,1 +1,1 @@
-"""Command-line entry points for the temporal resampling pilot."""
+"""Audited baseline runners and post-hoc reconstruction analyses."""

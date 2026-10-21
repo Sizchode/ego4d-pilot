@@ -1,73 +1,54 @@
-# Video Temporal Resampling / Latent Stability
+# Audited 3D Reconstruction Baselines and Failure Mining
 
-This repository implements the first-stage pilot in the current plan. The
-minimal closed loop is:
+This repository contains the reproducible code and research record for a
+training-free 3D reconstruction diagnosis project. The current completed stage
+does **not** use an LLM or agent: it establishes the reconstruction baselines,
+failure evidence, and deterministic controls that any later VLM policy must
+beat.
 
-```text
-SSv2 + DINOv3       image-foundation control
-SSv2 + V-JEPA 2     native predictive-video reference
-NExT-QA + Qwen3-VL  target Video-MLLM behavior
-C0 canonical vs C2 temporal offset first
-```
+## Completed baseline study
 
-The old AoT, VideoMAE, InternVL/MiniCPM, and broad benchmark experiments were
-removed. Model loaders now live under [`src/models`](src/models); data,
-timestamp schedules, probes, and experiment scripts live under
-[`src/temporal_resampling`](src/temporal_resampling) and [`scripts`](scripts).
+- Backbones: DA3-Giant, VGGT, π³-X, and MapAnything.
+- Population: 103 scenes across DTU-49, DTU-64, ETH3D, ScanNet++, 7Scenes,
+  and HiRoom.
+- Execution: 412/412 model-scene runs completed with no execution failure.
+- Failure mining: 10,358 directed view pairs per model, with standard and
+  visibility-controlled diagnostics.
+- Reproducibility: inputs, batch outputs, cross-model tables, and final mining
+  outputs passed independent audits and local reproduction checks.
 
-Local development does not require checkpoints, videos, GPU, or PyAV. It checks
-the protocol, manifest schema, and schedule math only:
+Large datasets, model weights, predictions, logs, and generated artifacts stay
+on scratch storage and are excluded from Git.
 
-```bash
-python -m unittest discover -s tests -v
-python -m compileall -q src scripts tests
-```
+## Repository map
 
-## HPC preparation
+- `scripts/{da3,vggt,pi3x,mapanything}`: model adapters and scene runners.
+- `scripts/failure_mining`: cross-view diagnostics, controlled interventions,
+  ranking analysis, and report generation.
+- `scripts/audit`: population, provenance, hash, and output audits.
+- `launchers`: Oscar Slurm launchers for preparation, inference, analysis,
+  and audit jobs.
+- `configs`: dependency constraints and public run configuration. Exact
+  external revisions and file digests remain in local ignored manifests.
+- `tests`: local unit and integration tests for adapters and analyses.
+- `research/2026-10-19-3dv-agent`: survey, experiment plan, final baseline
+  report, and teaching material.
 
-All model and dataset revisions must be immutable. The scripts reject missing
-revisions and do not invent canonical schedules. First export the official
-SSv2 label map and canonical timestamp JSON, then build a manifest:
+The concise result is in
+[`final-baseline-failure-mining.md`](research/2026-10-19-3dv-agent/final-baseline-failure-mining.md).
+The current paper scope is in
+[`related-work-survey.md`](research/2026-10-19-3dv-agent/related-work-survey.md).
 
-```bash
-python -m scripts.prepare_data manifest ssv2 \
-  --annotations /path/to/official/ssv2_train.json \
-  --video-root /path/to/ssv2/videos \
-  --split train \
-  --label-map /path/to/official/ssv2-label-map.json \
-  --annotation-revision official-source-revision \
-  --output /scratch/temporal-resampling/ssv2-train.jsonl
-```
+## Local verification
 
-The canonical schedule file is a JSON/YAML mapping with immutable provenance:
-`source`, `revision`, `dataset`, `model`, and `schedules` (`sample_id` to the
-official C0 timestamp list). C1 additionally requires an explicit
-`--lower-rate-ratio`; the default audit/render commands run C0 and C2 first.
-
-Audit C0/C1/C2/C3 with the exact official C0 timestamps:
+The tests use synthetic fixtures and do not require checkpoints or benchmark
+data:
 
 ```bash
-python -m scripts.audit_resampling \
-  --manifest /scratch/temporal-resampling/ssv2-val.jsonl \
-  --canonical-schedules /scratch/temporal-resampling/ssv2-c0-timestamps.json \
-  --offset-seconds 0.10 \
-  --output /scratch/temporal-resampling/ssv2-schedule-audit.json
+PYTHONPATH=. pytest -q --ignore=tests/test_temporal_resampling.py
+python -m compileall -q scripts tests
+git diff --check
 ```
 
-Render the first 20 samples and inspect the contact sheets before scaling up:
-
-```bash
-python -m scripts.render_schedule_samples \
-  --manifest /scratch/temporal-resampling/ssv2-val.jsonl \
-  --canonical-schedules /scratch/temporal-resampling/ssv2-c0-timestamps.json \
-  --offset-seconds 0.10 \
-  --output-dir /scratch/temporal-resampling/sample-sheets
-```
-
-The C0-trained cross-sampling probe is run by
-[`scripts/train_cross_sampling_probe.py`](scripts/train_cross_sampling_probe.py).
-It reports only `Top1(C0..C3)` and `Delta(C1..C3)`. Oracle probes are not the
-primary result.
-
-See [`ENVIRONMENT.md`](ENVIRONMENT.md) and [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md)
-for HPC gates. No optional benchmark is selected by this scaffold.
+The legacy video temporal-resampling pilot remains under `src/` and its
+original top-level scripts. It is independent of the 3D reconstruction study.

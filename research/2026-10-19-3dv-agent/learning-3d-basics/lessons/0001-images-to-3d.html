@@ -1,0 +1,69 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>从照片到三维模型</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<h1>从照片到三维模型</h1>
+<p class="deck">第一课：看懂 reconstruction pipeline、三类主要错误，以及 benchmark 在测什么。预计 8 分钟。</p>
+
+<div class="callout"><strong>今天只记一个式子：</strong>三维重建 = 每张照片从哪里拍（camera pose） + 每个像素有多远（depth） + 如何把各张结果合起来（fusion）。</div>
+
+<h2>1. 为什么一张照片不够？</h2>
+<p>照片把三维世界压扁成二维。同一个像素可能来自近处的小物体，也可能来自远处的大物体。换一个位置再拍，物体在两张图中的移动量不同；这种视差提供距离信息。COLMAP 把传统过程分成特征提取、匹配与几何验证、结构和相机恢复，之后再做稠密重建。</p>
+
+<div class="card pipeline">
+  <div class="step"><span class="label">多张 RGB</span><span class="small">同一场景，不同视角</span></div>
+  <div class="step"><span class="label">对应关系</span><span class="small">哪些像素是同一点</span></div>
+  <div class="step"><span class="label">相机 pose</span><span class="small">每张图从哪里拍</span></div>
+  <div class="step"><span class="label">depth / point map</span><span class="small">每个像素在哪里</span></div>
+  <div class="step"><span class="label">融合几何</span><span class="small">点云、表面或 mesh</span></div>
+</div>
+
+<h2>2. 三类错误看起来有什么不同？</h2>
+<p>点击按钮。虚线表示另一张视图认为表面应该在的位置。</p>
+<div class="card">
+  <div class="controls"><button data-mode="ok" class="active">正常</button><button data-mode="camera">Camera 错</button><button data-mode="depth">Depth 错</button><button data-mode="fusion">Fusion 错</button></div>
+  <div id="scene"><div class="camera c1"></div><div class="camera c2"></div><div class="surface"></div><div class="ghost"></div></div>
+  <p id="explain"><strong>正常：</strong>相机位置、局部深度和融合互相一致，两张照片支持同一个表面。</p>
+</div>
+
+<h2>3. 传统方法和现代模型差在哪里？</h2>
+<table><tr><th></th><th>传统 COLMAP / SfM + MVS</th><th>VGGT / DA3 / π³-X</th></tr>
+<tr><td>做法</td><td>先匹配特征，再解相机和稀疏点，最后估计稠密表面。</td><td>神经网络一次或少数几步直接预测相机、depth 或 point map。</td></tr>
+<tr><td>优势</td><td>几何约束明确，过程可检查。</td><td>快，弱纹理时可借助学习到的先验。</td></tr>
+<tr><td>风险</td><td>匹配失败会让流程断掉。</td><td>可能输出看似合理但跨视图不一致的几何。</td></tr>
+</table>
+
+<h2>4. Benchmark 指标到底在问什么？</h2>
+<table><tr><th>指标</th><th>它问的问题</th><th>陷阱</th></tr>
+<tr><td>Pose error / AUC</td><td>预测的相机相对位置和朝向是否正确？AUC 通常越高越好。</td><td>相机正确不代表表面正确。</td></tr>
+<tr><td>Accuracy</td><td>你预测出来的点，有多少靠近真实表面？</td><td>只预测少数最安全的点也可能很准。</td></tr>
+<tr><td>Completeness</td><td>真实表面有多少被你的预测覆盖？</td><td>撒很多噪声点可能提高覆盖。</td></tr>
+<tr><td>F-score</td><td>同时兼顾 accuracy 和 completeness。</td><td>仍然需要结合误差图看失败位置。</td></tr>
+</table>
+
+<h2>5. 这和我们的 paper 有什么关系？</h2>
+<p>我们已经看到一种关键情况：DA3 的相机是四个模型里最好的，但几何仍然输掉。对 ScanNet++ 的 8 个这类场景做受控替换后，最大的改善全部来自 depth。于是“看到总分差就修 camera”是错误策略。</p>
+<p>我们真正想测试的是：几何 residual 先指出“这里不一致”，VLM 再看 RGB 和局部状态，判断这是相机错、depth 错、融合错，还是不该采取动作。VLM 只有在相同工具和预算下超过 support-aware 数值规则，才有论文价值。</p>
+
+<div class="card quiz"><h3>30 秒自测</h3>
+<p>相机 AUC 很高，但 F-score 很低。最合理的第一反应是什么？</p>
+<label><input type="radio" name="q" value="a"> 一定继续优化相机</label>
+<label><input type="radio" name="q" value="b"> 检查 depth 与 fusion 证据</label>
+<label><input type="radio" name="q" value="c"> 直接换一个更大的 LLM</label>
+<button id="check">检查答案</button><p class="answer" id="answer">正确：先检查 depth 与 fusion。相机指标只覆盖 camera，并不证明表面正确。</p></div>
+
+<p><a href="../reference/glossary.html">打开术语速查表 →</a></p>
+<footer>主要资料：<a href="https://colmap.github.io/tutorial.html">COLMAP Tutorial</a> · <a href="https://docs.opencv.org/3.4.7/d9/d0c/group__calib3d.html">OpenCV camera model</a> · <a href="https://eth3d.ethz.ch/high_res_multi_view">ETH3D metrics</a>。有任何一句不清楚，都可以直接问老师。</footer>
+</main><script>
+const modes={
+ ok:{text:'<strong>正常：</strong>相机位置、局部深度和融合互相一致，两张照片支持同一个表面.'},
+ camera:{text:'<strong>Camera 错：</strong>整张视图的几何发生系统性错位，常见表现是双层墙或整体重影。'},
+ depth:{text:'<strong>Depth 错：</strong>相机位置可能正确，但表面局部鼓起或凹陷；错误通常随物体区域变化。'},
+ fusion:{text:'<strong>Fusion 错：</strong>输入预测未必很差，但过滤或融合规则留下漂浮点、重复表面，或删掉真实细节。'}
+};
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+ const m=b.dataset.mode,s=document.querySelector('.surface'),g=document.querySelector('.ghost'),c2=document.querySelector('.c2');
+ s.style.transform=m==='depth'?'translateX(-50%) scaleY(1.35)':'translateX(-50%)';
+ g.style.opacity=(m==='camera'||m==='fusion')?'1':'0';g.style.transform=m==='camera'?'translateX(-38%)':'translateX(-50%) translateY(18px)';
+ c2.style.right=m==='camera'?'25px':'70px'; document.querySelector('#explain').innerHTML=modes[m].text;
+});
+document.querySelector('#check').onclick=()=>{const v=document.querySelector('input[name=q]:checked');const a=document.querySelector('#answer');a.style.display='block';a.style.color=v&&v.value==='b'?'var(--green)':'var(--red)';a.textContent=v&&v.value==='b'?'正确：先检查 depth 与 fusion。相机指标只覆盖 camera，并不证明表面正确。':'再想一下：pose 指标只评价相机，不能替代表面几何指标。';};
+</script></body></html>

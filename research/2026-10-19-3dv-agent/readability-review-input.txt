@@ -1,0 +1,26 @@
+3DV + Agent：Related Work
+2026-10-19｜聚焦真实多视角重建的错误诊断与恢复
+研究目标：在固定图像与计算预算下，利用图像和重建状态定位错误约束，再由标准算法恢复相机与几何。优先研究身份歧义；工具封装是执行基础，VLM 增量须独立验证。
+1. Benchmark 与错误覆盖
+
+
+Benchmark | 典型困难／错误 | 主要评价与边界
+DG / VisymScenes | 重复立面误匹配、错误合并 | 消歧主集；pair 与地理参考不等于精密 pose GT
+PhotoTourism / 1DSfM | 宽基线、弱连接、注册／拼接失败 | 相机准确率与覆盖；参考来自 COLMAP / Bundler
+DTU / ETH3D / T&T | 弱纹理孔洞、细结构缺失、反光 | 表面 accuracy / completeness / F-score；T&T 不直接评价 pose
+ScanNet++ / CO3D | 室内跟踪／遮挡；少视图低重叠 | 前者有激光几何；后者为 SfM 参考，原生 NVS 给定相机
+TUM / Bonn / RealX3D | 动态污染；低光、模糊与反射退化 | TUM/Bonn 有 mocap；Bonn 有静态扫描；RealX3D pose 来自干净图像
+
+
+表中是文献报告的困难与失败，不是统一频率排名。DTU/ETH3D 原生 MVS 给定相机；改做未知位姿恢复须单列协议。ScanNet++、CO3D 也不能直接用 NVS 成绩证明相机恢复。
+2. 必须比较的 baseline
+完整系统：COLMAP、GLOMAP、VGGT + BA、GLUEMAP。专项方法：身份歧义用 DG++、MVDG、LFOE；动态用 RoMo、DynaSLAM / ReFusion；密集几何用 ACMM、MVSAnywhere。相机条件、图像池与总预算一致；不同论文的原始分数不直接横比。
+3. Related-work taxonomy 与工具取舍
+几何与混合重建。COLMAP/GLOMAP、Progressive SfM 已包含过滤、优化或结构重估；GLUEMAP 将前馈局部几何与全局优化结合。对应不足、低视差、内参／初始化及深度融合错误，优先复用专门算法。它们尚未完全解决，但没有证据说明语言推理是必要条件。
+学习型视觉消歧。DG++ 用几何视觉特征判别假共视，MVDG 利用多视图上下文，LFOE 联合图像与相机图过滤异常边。因此，“看图＋修图”不是 VLM 独有能力；普通重复纹理应先交给这些强基线。VLM 候选是视觉身份与当前几何发生冲突、需要定位致错关联的情形。
+VLM 辅助诊断。ThinkGraphs 已在已知位姿 RGB-D 中修复对象 tracks；Breaking Déjà Vu 审计地点检索；Dynapo 用 VLM 与分割辅助动态几何；3D Visual Illusion 已用 VLM 判断单／双目深度可靠性。因此，认出动态物体或镜子并调用工具不足以构成新贡献。
+4. 一个核心 gap：身份冲突如何修复相机
+拟研究的问题：当错误相机与重复纹理共同支持一个自洽但错误的重建时，能否利用跨视图实例证据，定位应拆分的 feature tracks 或应删除的 edges，并恢复相机？例如两个立面的窗户被合并，但雕塑、固定标识或周边布局提供反证。相较 ThinkGraphs，目标从已知相机下的对象节点修复推进到错误相机下的观测约束修复；相较 DG++/MVDG，拟增加按诊断需求获取证据并修正关联的能力。该增量仍是待验证假设。
+第一版仅保留检查状态、重匹配、修改关联、求解相机，以及 VLM 身份审查。VLM 输出关联 ID、图像证据和待验证假设；数值求解由固定后端执行。多步 Agent 只在额外视图或局部验证能改变修复决定时才有理由；证据不足时不强行合并。
+5. 什么结果才支持这一贡献
+主评 DG/VisymScenes 的消歧与下游 SfM，PhotoTourism 检验一般场景代价；同时报告错误合并、正确注册覆盖、位姿与完整成本。比较强后端、同工具固定流程、同输入非语言选择器、一次性 VLM 和多步 Agent。GT 仅用于离线评价；若同工具非语言方法达到相同结果，则不主张 VLM 必要。动态与材质问题仅作扩展方向。

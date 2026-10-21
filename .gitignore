@@ -28,3 +28,9 @@ results/*
 *.safetensors
 *.docx
 *.log
+
+# Rendered research exports are generated from the source Markdown/Google Doc.
+research/**/*.pdf
+
+# Exact external revisions and file digests remain in local run manifests.
+configs/*_pinned.json

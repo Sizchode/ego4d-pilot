@@ -1,0 +1,8 @@
+torch==2.8.0
+torchvision==0.23.0
+xformers==0.0.32.post2
+numpy==1.26.4
+opencv-python==4.11.0.86
+open3d==0.19.0
+huggingface-hub==0.36.0
+pycolmap==3.12.6
