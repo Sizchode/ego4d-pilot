@@ -1,0 +1,11 @@
+--- a/src/envs/replay.py
++++ b/src/envs/replay.py
+@@ -7,7 +7,7 @@
+ import yaml
+ from pathlib import Path
+ 
+-from scene_level_env import HabitatAREA3DEnv
++from envs.scene_level_env import HabitatAREA3DEnv
+ 
+ 
+ def _load_yaml(path):

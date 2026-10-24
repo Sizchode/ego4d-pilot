@@ -3,11 +3,11 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.DS_Store
 .env
 .env.*
 
-# Data, model weights, features, probe checkpoints, and run products live on
-# scratch and must never be committed.
+# Runtime assets and results belong on scratch, outside Git.
 data/
 features/
 artifacts/
@@ -17,20 +17,12 @@ envs/
 runs/
 logs/
 results/
-!logs/
-logs/*
-!logs/.gitkeep
-!results/
-results/*
-!results/.gitkeep
+tmp/
 *.pt
 *.pth
 *.safetensors
 *.docx
 *.log
-
-# Rendered research exports are generated from the source Markdown/Google Doc.
-research/**/*.pdf
-
-# Exact external revisions and file digests remain in local run manifests.
+*.sha256
+*.sha1
 configs/*_pinned.json
