@@ -12,10 +12,10 @@ import subprocess
 import time
 
 try:
-    from .run_strong_development_set import command_for
+    from .run_backend_population import command_for
     from .parent_population import population_arguments, load_population, archive_population, verify_geometry, FAILED, write
 except ImportError:
-    from run_strong_development_set import command_for
+    from run_backend_population import command_for
     from parent_population import population_arguments, load_population, archive_population, verify_geometry, FAILED, write
 
 
@@ -53,7 +53,7 @@ def main():
             assert path.read_bytes() == (args.accepted_run/'runner-source'/folder/name).read_bytes()
             shutil.copy2(path, source/folder/name)
     shutil.copy2(__file__, output/'orchestrator.py')
-    shutil.copy2(Path(__file__).with_name('run_strong_development_set.py'), output/'command_builder.py')
+    shutil.copy2(Path(__file__).with_name('run_backend_population.py'), output/'command_builder.py')
     shutil.copy2(args.parent_batch, output/'parent-batch.json')
     shutil.copy2(args.runtime_check, output/'runtime-check.json')
     archive_population(args, output)

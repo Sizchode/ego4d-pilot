@@ -1,1 +1,0 @@
-"""Audited VGGT baseline runner."""

@@ -79,6 +79,52 @@ def robust_score(p, pv, g, gv, official, seed):
     return summary
 
 
+def summarize_benchmark(directory, inventory_path, dataset, methods):
+    """只汇总完整的同一协议结果，禁止把漏跑序列从分母中删除。"""
+    import csv
+    directory = Path(directory)
+    inventory = json.loads(Path(inventory_path).read_text())
+    population = {row['case_id'] for row in inventory if row['dataset'] == dataset}
+    if not population or not methods or len(methods) != len(set(methods)):
+        raise ValueError('Expected a nonempty benchmark and unique methods')
+    summaries = []
+    for method in methods:
+        expected = {row['case_id']: row['sequence_key'] for row in inventory
+                    if row['dataset'] == dataset and row['method'] == method}
+        if set(expected) != population:
+            raise ValueError('Method inventory does not cover the full population')
+        output = directory / method
+        complete = json.loads((output / 'complete.json').read_text())
+        if complete != {'completed': len(population), 'population': len(population)}:
+            raise ValueError('Scoring is incomplete; do not publish a partial average')
+        files = set(output.glob('*.json')) - {output / 'configuration.json', output / 'complete.json'}
+        if {path.stem for path in files} != population:
+            raise ValueError('Score files differ from the fixed benchmark population')
+        results = [json.loads(path.read_text()) for path in sorted(files)]
+        if {row['case_id'] for row in results} != population:
+            raise ValueError('Result IDs do not cover the benchmark')
+        for row in results:
+            if (row['method'] != method or row['dataset'] != dataset
+                    or row['sequence_key'] != expected[row['case_id']]
+                    or row['canvas'] != 'official518'):
+                raise ValueError('Result identity or scoring canvas changed')
+            score = row['official_robust']
+            if not all(np.isfinite(score[key]) and 0 <= score[key] <= 1
+                       for key in ('auc_5cm', 'auc_10cm')):
+                raise ValueError('Invalid AUC; do not silently skip a failed sequence')
+        summaries.append(dict(dataset=dataset, method=method, sequences=len(population),
+            auc_5cm=float(np.mean([r['official_robust']['auc_5cm'] for r in results])),
+            auc_10cm=float(np.mean([r['official_robust']['auc_10cm'] for r in results])),
+            gt_pixels=sum(r['official_robust']['gt_pixels'] for r in results),
+            missing_pixels=sum(r['official_robust']['missing_pixels'] for r in results),
+            scoring_seconds=sum(r['seconds'] for r in results)))
+    with (directory / 'benchmark-summary.csv').open('w', newline='') as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(summaries[0]))
+        writer.writeheader()
+        writer.writerows(summaries)
+    return summaries
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--inventory', type=Path, required=True)

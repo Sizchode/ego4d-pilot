@@ -21,5 +21,5 @@ for name in export_pi3_unmasked native_state public_canvas geometry_state; do
 done
 cp "$task_root/code/runner/launchers/recovery_main_baseline_pi3_unmasked.slurm" "$run/launcher.slurm"
 "$task_root/envs/pi3x/bin/python" "$run/source/export_pi3_unmasked.py" \
-  --batch "$task_root/runs/recovery-main-baseline-pi3-7748834/population/batch.json" \
+  --batch "${BASELINE_BATCH:?Completed original Pi3 batch.json required}" \
   --output "$run/population"

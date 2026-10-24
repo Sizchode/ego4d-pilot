@@ -1,1 +1,0 @@
-"""Audited MapAnything baseline runner."""

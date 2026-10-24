@@ -1,4 +1,4 @@
-"""Repeat accepted MapAnything/Pi3 RGB recipes on the frozen development set."""
+"""在冻结的 RGB 输入清单上运行已验收的 VGGT、原版 π³ 和 MapAnything。"""
 import argparse
 import json
 from pathlib import Path
@@ -7,10 +7,10 @@ import subprocess
 import time
 
 try:
-    from .run_strong_development_set import command_for
+    from .run_backend_population import command_for
     from .run_da3_population import validate_plan, write, identity
 except ImportError:
-    from run_strong_development_set import command_for
+    from run_backend_population import command_for
     from run_da3_population import validate_plan, write, identity
 
 
@@ -103,6 +103,7 @@ def verify_prediction(result_root, spec, manifest, config):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--launcher', type=Path, required=True)
     parser.add_argument('--method', choices=RECIPES, required=True)
     for name in ['root', 'accepted-run', 'output']:
         parser.add_argument('--'+name, type=Path, required=True)
@@ -199,8 +200,8 @@ def main():
         write(output/'release.json', release)
     shutil.copy2(Path(__file__).with_name('run_da3_population.py'), output/'population_contract.py')
     shutil.copy2(__file__, output/'orchestrator.py')
-    shutil.copy2(Path(__file__).with_name('run_strong_development_set.py'), output/'command_builder.py')
-    shutil.copy2(runner/'launchers/recovery_native_development_set.slurm', output/'launcher.slurm')
+    shutil.copy2(Path(__file__).with_name('run_backend_population.py'), output/'command_builder.py')
+    shutil.copy2(args.launcher, output/'launcher.slurm')
     code = root/'code'/spec['code']
     mounts = [(root/'envs'/spec['environment'], root/'envs'/spec['environment']),
               (root/'envs/python', root/'envs/python'), (root/'models'/spec['model'], '/model'),

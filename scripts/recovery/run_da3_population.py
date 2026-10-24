@@ -13,9 +13,9 @@ import subprocess
 import time
 
 try:
-    from .run_strong_development_set import command_for
+    from .run_backend_population import command_for
 except ImportError:
-    from run_strong_development_set import command_for
+    from run_backend_population import command_for
 
 
 WORKERS = ('run_da3_rgb.py', 'native_state.py', 'geometry_state.py', 'public_canvas.py')
@@ -141,7 +141,7 @@ def execute(plan, root, accepted_batch, output, release=None):
     for name in WORKERS:
         shutil.copy2(runner/'scripts/recovery'/name, source/name)
     shutil.copy2(__file__, output/'orchestrator.py')
-    shutil.copy2(Path(__file__).with_name('run_strong_development_set.py'), output/'command_builder.py')
+    shutil.copy2(Path(__file__).with_name('run_backend_population.py'), output/'command_builder.py')
     write(output/'configuration.json', config)
     write(output/'plan.json', plan)
     if release is not None:

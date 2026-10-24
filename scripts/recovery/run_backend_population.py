@@ -90,6 +90,7 @@ def verify_amb3r(output, manifest):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--launcher', type=Path, required=True)
     parser.add_argument('--root',type=Path,required=True)
     population = parser.add_mutually_exclusive_group(required=True)
     population.add_argument('--prepared',type=Path)
@@ -176,7 +177,7 @@ def main():
     shutil.copy2(Path(__file__).with_name('run_da3_population.py'), output/'population_gate.py')
     if args.method=='ggpt':
         shutil.copy2(args.da3_batch/'batch.json',output/'parent-batch.json')
-    shutil.copy2(root/'code/runner/launchers'/f'recovery_{args.method}_development_set.slurm',output/'launcher.slurm')
+    shutil.copy2(args.launcher,output/'launcher.slurm')
     report={'method':args.method,'expected_scenes':len(rows),'completed':False,'scores_computed':False,
             'amb3r_first_scene_repeated_for_nvrtc_loader_verification':args.method=='amb3r','cases':[]}
     if plan is not None:

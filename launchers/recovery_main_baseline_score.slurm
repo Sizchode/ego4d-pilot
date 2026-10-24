@@ -22,7 +22,7 @@ done
 cp "$task_root/code/runner/launchers/recovery_main_baseline_score.slurm" "$run/launcher.slurm"
 cp "${BASELINE_BATCH:?Explicit completed baseline batch required}" "$run/input-batch.json"
 cp "$task_root/provenance/main-baseline-evaluation/${PLAN_NAME:?Frozen plan name required}-plan.json" "$run/input-plan.json"
-cp "$task_root/provenance/recovery-main-baseline-gt-7763533/gt/preparation.json" "$run/gt-preparation.json"
+cp "${GT_PREPARATION:?GT preparation.json required}" "$run/gt-preparation.json"
 "$task_root/envs/da3/bin/python" "$run/source/score_main_baseline.py" \
   --batch "$run/input-batch.json" --plan "$run/input-plan.json" \
   --gt-preparation "$run/gt-preparation.json" \
